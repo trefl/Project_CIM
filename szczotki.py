@@ -1,4 +1,6 @@
+#!/usr/bin/python3
 # Script to search for irregularities on the CIM, version: 1.0, author: Marek Trefler
+# -*- coding: utf-8 -*-
 import datetime
 import os
 import csv
@@ -15,10 +17,10 @@ class choice:
             self.choice = input("> ")
 
         list_pl = ["Data rozpoczęcia (dd.mm.rrrr)", "Data zakończenia (dd.mm.rrrr)",
-                   "Wybór daty: \n\t1 - Calość \n\t2 - Zakres",
-                   "Nieprawidłowa data lub format, wpisz datę w formacie dd.mm.rrrr", "Ilosc"]
-        list_eng = ["Start date (dd.mm.yyyy)", "End date (dd.mm.yyyy)", "Date selection: \n\t 1 - All \n\t 2 - Range",
-                    "Invalid date or format, please enter the date in the format dd.mm.yyyy", "Quantity"]
+                   "Wybór daty: \n\t1 - Calość \n\t2 - Zakres \n\t3 - Doba",
+                   "Nieprawidłowa data lub format, wpisz datę w formacie dd.mm.rrrr", "Ilosc", "Plik ", " znajduje sie w ", "Nazwa"]
+        list_eng = ["Start date (dd.mm.yyyy)", "End date (dd.mm.yyyy)", "Date selection: \n\t 1 - All \n\t 2 - Range \n\t 3 - 24h",
+                    "Invalid date or format, please enter the date in the format dd.mm.yyyy", "Quantity", "File ", " located in ","Name"]
         if self.choice == "1":
             lang = list_pl
         else:
@@ -26,17 +28,22 @@ class choice:
         return lang
 
     def range(self):
-        while self.choice != "1" and self.choice != "2":
+        while self.choice != "1" and self.choice != "2" and self.choice != "3":
             print(lang_list[2])
             self.choice = input("> ")
         if self.choice == "1":
             start_date = datetime.datetime.strptime("01.01.2000", '%d.%m.%Y')
             end_date = datetime.datetime.now()
-        else:
+        elif self.choice == "2":
             print(lang_list[0])
             start_date = addDate().my_date()
             print(lang_list[1])
             end_date = addDate().my_date()
+        else:
+            print(lang_list[0])
+            start_date = addDate().my_date()
+            end_date = start_date + datetime.timedelta(days=1)
+        
         return start_date, end_date
 
 
@@ -56,7 +63,7 @@ class addDate:
         return new_date
 
 
-# os.system('clear')
+os.system('clear')
 lang_list = choice().language()
 
 dates = choice().range()
@@ -65,25 +72,25 @@ date_start = dates[0]
 date_end = dates[1]
 
 
-class search:
+def rce():
+    rce_list = []
 
-    def searchDirectory(self):
-        dirname = "D:\Folder"
-        folders = os.listdir(dirname)
-        folderList = []
-        for folder in folders:
-            folderList.append(folder)
-        return folderList
+    for i in range(1, 17):
+        if i < 10:
+            rce_list.append("00" + str(i))
+        else:
+            rce_list.append("0" + str(i))
+    return rce_list
 
-    def searchCCR(self, folder):
-        # dirname = "/home/translog/plikiRM/"+folder
-        dirname = "D:\Folder\\" + folder
-        folders = os.listdir(dirname)
-        CCRlist = []
-        for folder in folders:
-            if folder.find("CCR") == 0 and folder.find(".old") < 0:
-                CCRlist.append(folder)
-        return CCRlist
+
+def searchCCR(folder):
+    dirname = "/u/xpo/master/run/log/" + folder
+    folders = os.listdir(dirname)
+    CCRlist = []
+    for folder in folders:
+        if folder.find("CCR") == 0 and folder.find(".old") < 0 and folder.find(".save") < 0:
+            CCRlist.append(folder)
+    return CCRlist
 
 
 class retracking:
@@ -92,13 +99,10 @@ class retracking:
         flag = 0
         tempDict = {}
         cim = ""
-        # with open("/home/translog/plikiRM/" + folder + "/" + file, "r") as read_obj:
-        with open("D:\Folder" + "\\" + directory + "\\" + file, "r") as read_obj:
+        with open("/u/xpo/master/run/log/" + directory + "/" + file, "r", encoding='latin-1') as read_obj:
             for line in read_obj:
                 if flag == 0:
-                    if "for TE000" in line and datetime.datetime.strptime(line[:8],
-                                                                          '%d.%m.%y') > data_start and datetime.datetime.strptime(
-                        line[:8], '%d.%m.%y') < data_end:
+                    if "for TE000" in line and datetime.datetime.strptime(line[:8],'%d.%m.%y') >= data_start and datetime.datetime.strptime(line[:8], '%d.%m.%y') < data_end:
                         s = line.find("for TE000")
                         cim = "CIM" + line[s + 9] + line[s + 10] + line[s + 11]
                         flag = 1
@@ -115,36 +119,63 @@ class retracking:
                     else:
                         flag = 0
                         cim = ""
-        return tempDict
+        
+        rtDict = sorted(tempDict.items(), key=lambda x: x[1], reverse=True)
+        return rtDict
 
 
 def date_range(date_start, date_end):
     if str(date_start) == "2000-01-01 00:00:00":
         date_text = ""
     else:
-        date_text = f'{date_start.strftime("%d.%m.%Y")} - {date_end.strftime("%d.%m.%Y")}'
+        date_text = date_start.strftime("%d.%m.%Y") + "-" + date_end.strftime("%d.%m.%Y")
     return date_text
+    
+    
+    
+def findCIM(rce, key):
+    name = ""
+    with open("/home/translog/CimCom", "r") as read_obj:
+        for line in read_obj:
+
+            if rce == line[:3] and key[3:6] == line[4:7]:
+                name = line[12:].replace('\n', '')
+    return name
+
+def addZero(nDate):
+  if nDate < 10:
+      nDate = "0"+ str(nDate)
+  return nDate 
 
 
-# os.system('clear')
+os.system('clear')
 
-find_folders = search().searchDirectory()
+find_folders = rce()
 now = datetime.datetime.now()
-name_csv = "szczotki_" + str(now.year) + str(now.month) + str(now.day) + "_" + str(now.hour) + str(now.minute) + ".csv"
+
+name_csv = "szczotki_" + str(now.year) + str(addZero(now.month)) + str(addZero(now.day)) + "_" + str(addZero(now.hour)) + str(addZero(now.minute)) + ".csv"
 print(date_range(date_start, date_end))
-with open(name_csv, 'w', newline='') as file:
+with open("/home/translog/plikiRM/CSV/"+name_csv, 'w', newline='') as file:
     writer = csv.writer(file, delimiter=';')
     writer.writerow([date_range(date_start, date_end)])
-    writer.writerow(["RCE", "CCR", "CIM", lang_list[4]])
+    writer.writerow(["RCE", "CCR", "CIM",lang_list[7], lang_list[4]])
     for folder in find_folders:
-        print(f'\n\033[33mRCE: {folder}\033[0;0m\n')
-        find_ccr = search().searchCCR(folder)
+        print("\n\033[33mRCE: " + folder + "\033[0;0m\n")
+        find_ccr = searchCCR(folder)
+        #print(find_ccr)
         for ccr in find_ccr:
-            retrackingDict = retracking().find_retracking(folder, ccr, date_start, date_end)
-        sortDict = {k: v for k, v in sorted(retrackingDict.items(), key=lambda v: v[1], reverse=True)}
-        for keys, values in sortDict.items():
-            print(f'{keys}: {values}')
-            writer.writerow([folder, ccr, keys, values])
+            retrackingList = retracking().find_retracking(folder, ccr, date_start, date_end)
+            for i in retrackingList:
+                name = findCIM(folder, i[0])
+                print(ccr+" : " + str(i[0]) + " : \033[36m" +  name + (11-len(name))*" "+" " + "\033[m : \033[31m" + str(i[1]) + "\033[m")
+                writer.writerow([folder, ccr, i[0], name, i[1]])
+            
+        
+print("\n\033[35m" +lang_list[5] + name_csv + lang_list[6] + "/home/translog/plikiRM/CSV\033[0;0m\n")
+
+
+
+
 
 
 # Script to search for irregularities on the CIM, version: 1.0, author: Marek Trefler
