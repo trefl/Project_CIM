@@ -1,13 +1,14 @@
 #!/usr/bin/python3
-# Script to search for retracking from the last 30 minutes, version: 1.0, author: Marek Trefler
+# Script to search for retracking from the last 30 minutes, version: 1.1, author: Marek Trefler
 # -*- coding: utf-8 -*-
 import datetime
 import io
 import os
 import sys
 
+
 def startTime(arg):
-    if len(arg)== 2:
+    if len(arg) == 2:
         if arg[1].isdigit():
             find = datetime.datetime.now() - datetime.timedelta(hours=int(arg[1]))
         else:
@@ -16,12 +17,13 @@ def startTime(arg):
     else:
         find = datetime.datetime.now() - datetime.timedelta(hours=0.5)
     return find
-    
+
+
 find_date = startTime(sys.argv)
-print("\033[33mSTART: ", find_date )
+print("\n\033[33mSTART: ", find_date.strftime("%m/%d/%Y, %H:%M:%S"))
 print("\033[m\n")
 rtDict = {}
-#print(find_date)
+
 
 def rce():
     rce_list = []
@@ -36,7 +38,6 @@ def rce():
 
 def searchCCR(folder):
     dirname = "/u/xpo/master/run/log/" + folder
-    #dirname = "D:\Folder\\" + folder
     folders = os.listdir(dirname)
     CCRlist = []
     for folder in folders:
@@ -44,44 +45,51 @@ def searchCCR(folder):
             CCRlist.append(folder)
     return CCRlist
 
+
 find_folders = rce()
 now = datetime.datetime.now()
+
 
 class retracking:
 
     def find_retracking(self, directory, file, start_date, tempDict):
         with open("/u/xpo/master/run/log/" + directory + "/" + file, "r", encoding='latin-1') as read_obj:
-        #with open("D:\Folder" + "\\" + directory + "\\" + file, "r") as read_obj:
             for line in read_obj:
                 if datetime.datetime.strptime(line[:17], '%d.%m.%y %H:%M:%S') > start_date:
                     if "went out at slave" in line:
                         if "COM" in line:
                             s = line.find("COM")
-                            tempDict[line[:25]] = [directory, file[3:], "COM", line[s + 3] + line[s + 4] + line[s + 5], "Worek wyjechal niespodziewanie na  "]
-                        elif "CIM" in line:
-                            s = line.find("CIM")
-                            tempDict[line[:25]] = [directory, file[3:], "CIM", line[s + 3] + line[s + 4] + line[s + 5], "Worek wyjechal niespodziewanie na  "]
+                            tempDict[line[:25]] = [directory, file[3:], "COM", line[s + 3] + line[s + 4] + line[s + 5],
+                                                   "Worek wyjechal niespodziewanie na  "]
                     elif "didn't go out at exit COM" in line:
                         s = line.find("COM")
-                        tempDict[line[:25]] = [directory, file[3:], "COM", line[s + 3] + line[s + 4] + line[s + 5], "Worek nie wyjechal na              "]
-                    elif "didn't go out at exit CIM" in line:
-                        s = line.find("CIM")
-                        tempDict[line[:25]] = [directory, file[3:], "CIM", line[s + 3] + line[s + 4] + line[s + 5], "Worek nie wyjechal na              "]
-
+                        tempDict[line[:25]] = [directory, file[3:], "COM", line[s + 3] + line[s + 4] + line[s + 5],
+                                               "Worek nie wyjechal na              "]
 
         return tempDict
 
+
+def progress(percent=0, width=40):
+    left = width * percent // 100
+    right = width - left
+
+    tags = chr(452) * left
+    spaces = " " * right
+    percents = str(percent) + "%"
+
+    print("\rPrzeszukiwanie RCE: \033[33m|", tags, spaces, "|\033[m", percents, sep="", end="", flush=True)
 
 
 for folder in find_folders:
     find_ccr = searchCCR(folder)
     for ccr in find_ccr:
         retracking().find_retracking(folder, ccr, find_date, rtDict)
+    progress(int(int(folder) / 16 * 100))
+
 
 def findC(rce, key):
     name = ""
     with open("/home/translog/CimCom", "r") as read_obj:
-    #with open("D:\Folder\\CimCom.txt", "r") as read_obj:
         for line in read_obj:
 
             if rce == line[:3] and key == line[4:7]:
@@ -89,11 +97,12 @@ def findC(rce, key):
     return name
 
 
+print("\n")
 sortList = sorted(rtDict.items(), key=lambda x: x[0], reverse=False)
 for row in sortList:
     name = findC(str(row[1][0]), str(row[1][3]))
-    print(row[0][:17] + "   \033[33m" + row[1][0] + "/" + row[1][1] + "\033[34m   " + row[1][2]+row[1][3] + "\033[m  " + row[1][4] + "  -->  \033[32m" + name +"\033[m")
-    
+    print(
+        row[0][:17] + "   \033[33m" + row[1][0] + "/" + row[1][1] + "\033[34m   " + row[1][2] + row[1][3] + "\033[m  " +
+        row[1][4] + "  -->  \033[32m" + name + "\033[m")
 
-# Script to search for retracking from the last 30 minutes, version: 1.0, author: Marek Trefler
-    
+# Script to search for retracking from the last 30 minutes, version: 1.1, author: Marek Trefler
